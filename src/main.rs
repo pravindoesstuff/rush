@@ -38,6 +38,7 @@ fn main() {
                     let dir = args.next().unwrap_or("~");
                     if args.count() > 0 {
                         eprintln!("cd: too many arguments");
+                        break;
                     } else {
                         cd::change_directory(dir);
                     }
