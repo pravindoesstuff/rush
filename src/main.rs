@@ -20,36 +20,60 @@ fn main() {
             continue;
         }
 
-        let mut args = input.trim().split_whitespace();
-        let command = match args.next() {
-            Some(c) => c,
-            None => continue,
-        };
+        let mut commands = input.trim().split('|').peekable();
 
-        match command {
-            "cd" => {
-                let dir = args.next().unwrap_or("~");
-                if args.count() > 0 {
-                    eprintln!("cd: too many arguments");
-                } else {
-                    cd::change_directory(dir);
-                }
-            }
-            "exit" => {
-                std::process::exit(0);
-            }
-            command => {
-                let mut child = match std::process::Command::new(command).args(args).spawn() {
-                    Ok(c) => c,
-                    Err(e) => {
-                        eprintln!("{}", e);
-                        continue;
+        let mut previous_command: Option<std::process::Child> = None;
+
+        while let Some(command) = commands.next() {
+            let mut args = command.trim().split_whitespace();
+            let command = match args.next() {
+                Some(c) => c,
+                None => continue,
+            };
+
+            match command {
+                "exit" => return,
+
+                "cd" => {
+                    let dir = args.next().unwrap_or("~");
+                    if args.count() > 0 {
+                        eprintln!("cd: too many arguments");
+                    } else {
+                        cd::change_directory(dir);
                     }
-                };
-                if let Err(e) = child.wait() {
-                    eprintln!("{}", e);
-                    continue;
+                    previous_command = None;
                 }
+
+                command => {
+                    let stdin = match previous_command {
+                        Some(child) => std::process::Stdio::from(child.stdout.unwrap()),
+                        None => std::process::Stdio::inherit(),
+                    };
+
+                    let stdout = if commands.peek().is_some() {
+                        std::process::Stdio::piped()
+                    } else {
+                        std::process::Stdio::inherit()
+                    };
+                    let output = std::process::Command::new(command)
+                        .args(args)
+                        .stdin(stdin)
+                        .stdout(stdout)
+                        .spawn();
+                    match output {
+                        Ok(output) => previous_command = Some(output),
+                        Err(e) => {
+                            previous_command = None;
+                            eprintln!("{}", e);
+                        }
+                    }
+                }
+            }
+        }
+        if let Some(mut final_command) = previous_command {
+            if let Err(e) = final_command.wait() {
+                eprintln!("{}", e);
+                continue;
             }
         }
     }
