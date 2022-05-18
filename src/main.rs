@@ -39,11 +39,7 @@ fn main() {
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
-            let command = command.trim_end();
-            if command.is_empty() {
-                continue;
-            }
-            match command {
+            match command.trim_end() {
                 "exit" => return,
 
                 "cd" => {
@@ -58,17 +54,13 @@ fn main() {
 
                 command => {
                     let mut args = Vec::new();
-                    dbg!(&command);
                     for command in commands.by_ref() {
                         if command == &"|" || command == &">" {
                             break;
                         }
                         let command = command.trim_end();
-                        if !command.is_empty() {
-                            args.push(command);
-                        }
+                        args.push(command);
                     }
-                    dbg!(&args);
 
                     let stdin = match previous_command {
                         Some(child) => std::process::Stdio::from(child.stdout.unwrap()),
