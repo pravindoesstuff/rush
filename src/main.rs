@@ -35,16 +35,20 @@ fn main() {
             result.push(&text[last..]);
         }
 
-        let mut commands = result.iter_mut().peekable();
+        let mut commands = result.iter_mut().filter(|c| c != &&" ").peekable();
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
-            match command.trim_end() {
+            let command = command.trim_end();
+            if command.is_empty() {
+                continue;
+            }
+            match command {
                 "exit" => return,
 
                 "cd" => {
                     if let Some(dir) = commands.next() {
-                        cd::change_directory(dir);
+                        cd::change_directory(dir.trim_end());
                     } else {
                         cd::change_directory("~");
                     }
@@ -54,6 +58,7 @@ fn main() {
 
                 command => {
                     let mut args = Vec::new();
+                    dbg!(&command);
                     for command in commands.by_ref() {
                         if command == &"|" || command == &">" {
                             break;
@@ -63,6 +68,7 @@ fn main() {
                             args.push(command);
                         }
                     }
+                    dbg!(&args);
 
                     let stdin = match previous_command {
                         Some(child) => std::process::Stdio::from(child.stdout.unwrap()),
