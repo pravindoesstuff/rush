@@ -50,14 +50,39 @@ fn main() {
                     break;
                 }
 
+                ">" => {
+                    if let Some(destination) = commands.next() {
+                        let destination = destination.trim_end();
+                        let mut dest_file = match std::fs::File::create(destination) {
+                            Ok(fd) => fd,
+                            Err(e) => {
+                                eprintln!("{}", e);
+                                previous_command = None;
+                                break;
+                            }
+                        };
+                        if let Some(child) = previous_command {
+                            if let Err(e) =
+                                std::io::copy(&mut child.stdout.unwrap(), &mut dest_file)
+                            {
+                                eprintln!("{}", e);
+                            }
+                        }
+                    } else {
+                        eprintln!("Missing redirection destination");
+                    }
+                    previous_command = None;
+                }
+
+                "|" => {}
+
                 command => {
                     let mut args = Vec::new();
-                    for command in commands.by_ref() {
-                        if *command == "|" || *command == ">" {
+                    while let Some(command) = commands.peek() {
+                        if **command == "|" || **command == ">" {
                             break;
                         }
-                        let command = command.trim_end();
-                        args.push(command);
+                        args.push(commands.next().unwrap().trim_end());
                     }
 
                     let stdin = match previous_command {
