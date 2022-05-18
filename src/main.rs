@@ -20,22 +20,20 @@ fn main() {
             continue;
         }
 
-        let text = &input;
-
         let mut result = Vec::new();
         let mut last = 0;
-        for (index, matched) in text.match_indices(|c| c == ' ' || c == '|' || c == '>') {
+        for (index, matched) in input.match_indices(|c| c == ' ' || c == '|' || c == '>') {
             if last != index {
-                result.push(&text[last..index]);
+                result.push(&input[last..index]);
             }
             result.push(matched);
             last = index + matched.len();
         }
-        if last < text.len() {
-            result.push(&text[last..]);
+        if last < input.len() {
+            result.push(&input[last..]);
         }
 
-        let mut commands = result.iter_mut().filter(|c| c != &&" ").peekable();
+        let mut commands = result.iter_mut().filter(|c| **c != " ").peekable();
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
@@ -55,7 +53,7 @@ fn main() {
                 command => {
                     let mut args = Vec::new();
                     for command in commands.by_ref() {
-                        if command == &"|" || command == &">" {
+                        if *command == "|" || *command == ">" {
                             break;
                         }
                         let command = command.trim_end();
