@@ -1,6 +1,9 @@
 #[path = "internal_functions/cd.rs"]
 mod cd;
 
+#[path = "internal_functions/redirect.rs"]
+mod redirect;
+
 const PROMPT: &str = "rush> ";
 
 // Bring flush() into scope
@@ -53,21 +56,10 @@ fn main() {
                 ">" => {
                     if let Some(destination) = commands.next() {
                         let destination = destination.trim_end();
-                        let mut dest_file = match std::fs::File::create(destination) {
-                            Ok(fd) => fd,
-                            Err(e) => {
-                                eprintln!("{}", e);
-                                previous_command = None;
-                                break;
-                            }
-                        };
-                        if let Some(child) = previous_command {
-                            if let Err(e) =
-                                std::io::copy(&mut child.stdout.unwrap(), &mut dest_file)
-                            {
-                                eprintln!("{}", e);
-                            }
-                        }
+
+                        if let Err(e) = redirect::redirect(destination, &mut previous_command) {
+                            eprintln!("{}", e);
+                        } 
                     } else {
                         eprintln!("Missing redirection destination");
                     }
