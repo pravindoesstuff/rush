@@ -20,32 +20,50 @@ fn main() {
             continue;
         }
 
-        let mut commands = input.trim().split('|').peekable();
+        let text = &input;
 
+        let mut result = Vec::new();
+        let mut last = 0;
+        for (index, matched) in text.match_indices(|c| c == ' ' || c == '|' || c == '>') {
+            if last != index {
+                result.push(&text[last..index]);
+            }
+            result.push(matched);
+            last = index + matched.len();
+        }
+        if last < text.len() {
+            result.push(&text[last..]);
+        }
+
+        let mut commands = result.iter_mut().peekable();
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
-            let mut args = command.trim().split_whitespace();
-            let command = match args.next() {
-                Some(c) => c,
-                None => continue,
-            };
-
-            match command {
+            match command.trim_end() {
                 "exit" => return,
 
                 "cd" => {
-                    let dir = args.next().unwrap_or("~");
-                    if args.count() > 0 {
-                        eprintln!("cd: too many arguments");
-                        break;
-                    } else {
+                    if let Some(dir) = commands.next() {
                         cd::change_directory(dir);
+                    } else {
+                        cd::change_directory("~");
                     }
                     previous_command = None;
+                    break;
                 }
 
                 command => {
+                    let mut args = Vec::new();
+                    for command in commands.by_ref() {
+                        if command == &"|" || command == &">" {
+                            break;
+                        }
+                        let command = command.trim_end();
+                        if !command.is_empty() {
+                            args.push(command);
+                        }
+                    }
+
                     let stdin = match previous_command {
                         Some(child) => std::process::Stdio::from(child.stdout.unwrap()),
                         None => std::process::Stdio::inherit(),
@@ -56,11 +74,13 @@ fn main() {
                     } else {
                         std::process::Stdio::inherit()
                     };
+
                     let output = std::process::Command::new(command)
                         .args(args)
                         .stdin(stdin)
                         .stdout(stdout)
                         .spawn();
+
                     match output {
                         Ok(output) => previous_command = Some(output),
                         Err(e) => {
