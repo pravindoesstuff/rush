@@ -10,5 +10,5 @@ pub fn redirect(destination: &str, child: &mut Option<std::process::Child>) -> R
             return Err(e);
         }
     }
-    return Ok(());
+    Ok(())
 }
