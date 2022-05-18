@@ -25,7 +25,7 @@ fn main() {
 
         let mut result = Vec::new();
         let mut last = 0;
-        for (index, matched) in input.match_indices(|c| c == ' ' || c == '|' || c == '>') {
+        for (index, matched) in input.match_indices(|c| c == ' ' || c == '\n' || c == '|' || c == '>') {
             if last != index {
                 result.push(&input[last..index]);
             }
@@ -36,16 +36,16 @@ fn main() {
             result.push(&input[last..]);
         }
 
-        let mut commands = result.iter_mut().filter(|c| **c != " ").peekable();
+        let mut commands = result.iter_mut().filter(|c| **c != " " && **c != "\n").peekable();
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
-            match command.trim_end() {
+            match *command {
                 "exit" => return,
 
                 "cd" => {
                     if let Some(dir) = commands.next() {
-                        cd::change_directory(dir.trim_end());
+                        cd::change_directory(dir)
                     } else {
                         cd::change_directory("~");
                     }
@@ -55,8 +55,6 @@ fn main() {
 
                 ">" => {
                     if let Some(destination) = commands.next() {
-                        let destination = destination.trim_end();
-
                         if let Err(e) = redirect::redirect(destination, &mut previous_command) {
                             eprintln!("{}", e);
                         } 
@@ -74,7 +72,7 @@ fn main() {
                         if **command == "|" || **command == ">" {
                             break;
                         }
-                        args.push(commands.next().unwrap().trim_end());
+                        args.push(commands.next().unwrap());
                     }
 
                     let stdin = match previous_command {
