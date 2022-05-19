@@ -1,4 +1,7 @@
-pub fn redirect(destination: &str, child: &mut Option<std::process::Child>) -> Result<(), std::io::Error> {
+pub fn redirect(
+    destination: &str,
+    child: &mut Option<std::process::Child>,
+) -> Result<(), std::io::Error> {
     let mut dest_file = match std::fs::File::create(destination) {
         Ok(fd) => fd,
         Err(e) => {
