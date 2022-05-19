@@ -13,7 +13,7 @@ const HISTORY_FILE: &str = ".rush_history";
 fn main() {
     let mut rl = rustyline::Editor::<()>::new();
 
-    if std::fs::File::create(HISTORY_FILE).is_ok() && rl.load_history(HISTORY_FILE).is_err() {
+    if rl.load_history(HISTORY_FILE).is_err() && std::fs::File::create(HISTORY_FILE).is_err()  {
         eprintln!("Could not read history file: {}", HISTORY_FILE);
     }
 
