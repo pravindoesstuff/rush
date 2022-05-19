@@ -4,6 +4,9 @@ mod cd;
 #[path = "internal_functions/redirect.rs"]
 mod redirect;
 
+#[path = "internal_functions/interpreter.rs"]
+mod interpreter;
+
 const PROMPT: &str = "rush> ";
 
 // Bring flush() into scope
@@ -23,20 +26,9 @@ fn main() {
             continue;
         }
 
-        let mut result = Vec::new();
-        let mut last = 0;
-        for (index, matched) in input.match_indices(|c| c == ' ' || c == '\n' || c == '|' || c == '>') {
-            if last != index {
-                result.push(&input[last..index]);
-            }
-            result.push(matched);
-            last = index + matched.len();
-        }
-        if last < input.len() {
-            result.push(&input[last..]);
-        }
+        let mut tokens = interpreter::parseline(&input);
+        let mut commands = tokens.iter_mut().peekable();
 
-        let mut commands = result.iter_mut().filter(|c| **c != " " && **c != "\n").peekable();
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
@@ -57,7 +49,7 @@ fn main() {
                     if let Some(destination) = commands.next() {
                         if let Err(e) = redirect::redirect(destination, &mut previous_command) {
                             eprintln!("{}", e);
-                        } 
+                        }
                     } else {
                         eprintln!("Missing redirection destination");
                     }
