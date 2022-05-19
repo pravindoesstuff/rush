@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 home = "0.5.3"
+rustyline = "9.1.2"
 
 [profile.dev]
 incremental = true

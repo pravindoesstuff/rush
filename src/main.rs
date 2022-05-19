@@ -8,23 +8,32 @@ mod redirect;
 mod interpreter;
 
 const PROMPT: &str = "rush> ";
-
-// Bring flush() into scope
-use std::io::Write;
+const HISTORY_FILE: &str = ".rush_history";
 
 fn main() {
-    loop {
-        print!("{}", PROMPT);
-        if let Err(e) = std::io::stdout().flush() {
-            eprintln!("{}", e);
-            continue;
-        }
+    let mut rl = rustyline::Editor::<()>::new();
 
-        let mut input = String::new();
-        if let Err(e) = std::io::stdin().read_line(&mut input) {
-            eprintln!("{}", e);
-            continue;
-        }
+    if std::fs::File::create(HISTORY_FILE).is_ok() && rl.load_history(HISTORY_FILE).is_err() {
+        eprintln!("Could not create history file: {}", HISTORY_FILE);
+    }
+
+    loop {
+        let input = match rl.readline(PROMPT) {
+            Ok(line) => {
+                rl.add_history_entry(&line);
+                line
+            }
+
+            Err(rustyline::error::ReadlineError::Interrupted) => {
+                println!("^C");
+                continue;
+            }
+
+            Err(e) => {
+                eprintln!("{}", e);
+                std::process::exit(1);
+            }
+        };
 
         let mut tokens = interpreter::parseline(&input);
         let mut commands = tokens.iter_mut().peekable();
@@ -33,7 +42,12 @@ fn main() {
 
         while let Some(command) = commands.next() {
             match *command {
-                "exit" => return,
+                "exit" => {
+                    if let Err(e) = rl.save_history(HISTORY_FILE) {
+                        eprintln!("Could not save history: {}", e);
+                    }
+                    return
+                }
 
                 "cd" => {
                     if let Some(dir) = commands.next() {
