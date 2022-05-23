@@ -4,9 +4,6 @@ mod cd;
 #[path = "internal_functions/redirect.rs"]
 mod redirect;
 
-#[path = "internal_functions/interpreter.rs"]
-mod interpreter;
-
 const PROMPT: &str = "rush> ";
 const HISTORY_FILE: &str = ".rush_history";
 
@@ -35,13 +32,20 @@ fn main() {
             }
         };
 
-        let mut tokens = interpreter::parseline(&input);
-        let mut commands = tokens.iter_mut().peekable();
+        let split_command = shell_words::split(&input);
+        let mut split_command = match split_command {
+            Ok(commands) => commands,
+            Err(e) => {
+                eprintln!("{}", e);
+                break;
+            }
+        };
+        let mut commands = split_command.iter_mut().peekable();
 
         let mut previous_command: Option<std::process::Child> = None;
 
-        while let Some(command) = commands.next() {
-            match *command {
+        while let Some(command) = commands.next() {             
+            match command.as_str() {
                 "exit" => {
                     if let Err(e) = rl.save_history(HISTORY_FILE) {
                         eprintln!("Could not save history: {}", e);
