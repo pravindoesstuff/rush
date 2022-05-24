@@ -85,7 +85,22 @@ fn main() {
                             eprintln!("{}", e);
                         }
                     }
-                    previous_command = None
+                    previous_command = None;
+                }
+
+                "&&" => {
+                    if let Some(mut command) = previous_command {
+                        match command.wait() {
+                            Ok(status) => if !status.success() {
+                                previous_command = None;
+                                break;
+                            }
+                            Err(e) => {
+                                eprintln!("{}", e);
+                            }
+                        }
+                    }
+                    previous_command = None;
                 }
 
                 command => {
