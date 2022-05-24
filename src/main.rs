@@ -13,7 +13,7 @@ const HISTORY_FILE: &str = ".rush_history";
 fn main() {
     let mut rl = rustyline::Editor::<()>::new();
 
-    if rl.load_history(HISTORY_FILE).is_err() && std::fs::File::create(HISTORY_FILE).is_err()  {
+    if rl.load_history(HISTORY_FILE).is_err() && std::fs::File::create(HISTORY_FILE).is_err() {
         eprintln!("Could not read history file: {}", HISTORY_FILE);
     }
 
@@ -47,13 +47,13 @@ fn main() {
 
         let mut previous_command: Option<std::process::Child> = None;
 
-        while let Some(command) = commands.next() {             
+        while let Some(command) = commands.next() {
             match command.as_str() {
                 "exit" => {
                     if let Err(e) = rl.save_history(HISTORY_FILE) {
                         eprintln!("Could not save history: {}", e);
                     }
-                    return
+                    return;
                 }
 
                 "cd" => {
@@ -91,9 +91,11 @@ fn main() {
                 "&&" => {
                     if let Some(mut command) = previous_command {
                         match command.wait() {
-                            Ok(status) => if !status.success() {
-                                previous_command = None;
-                                break;
+                            Ok(status) => {
+                                if !status.success() {
+                                    previous_command = None;
+                                    break;
+                                }
                             }
                             Err(e) => {
                                 eprintln!("{}", e);
@@ -117,7 +119,9 @@ fn main() {
                         None => std::process::Stdio::inherit(),
                     };
 
-                    let stdout = if commands.peek().is_some() && !symbols::io_seperator(commands.peek().unwrap()) {
+                    let stdout = if commands.peek().is_some()
+                        && !symbols::io_seperator(commands.peek().unwrap())
+                    {
                         std::process::Stdio::piped()
                     } else {
                         std::process::Stdio::inherit()
