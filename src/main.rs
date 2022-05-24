@@ -4,6 +4,9 @@ mod cd;
 #[path = "internal_functions/redirect.rs"]
 mod redirect;
 
+#[path = "internal_functions/symbols.rs"]
+mod symbols;
+
 const PROMPT: &str = "rush> ";
 const HISTORY_FILE: &str = ".rush_history";
 
@@ -31,7 +34,6 @@ fn main() {
                 std::process::exit(1);
             }
         };
-
         let split_command = shell_words::split(&input);
         let mut split_command = match split_command {
             Ok(commands) => commands,
@@ -40,6 +42,7 @@ fn main() {
                 break;
             }
         };
+
         let mut commands = split_command.iter_mut().peekable();
 
         let mut previous_command: Option<std::process::Child> = None;
@@ -76,10 +79,19 @@ fn main() {
 
                 "|" => {}
 
+                ";" => {
+                    if let Some(mut command) = previous_command {
+                        if let Err(e) = command.wait() {
+                            eprintln!("{}", e);
+                        }
+                    }
+                    previous_command = None
+                }
+
                 command => {
                     let mut args = Vec::new();
                     while let Some(command) = commands.peek() {
-                        if **command == "|" || **command == ">" {
+                        if symbols::is_protected(command) {
                             break;
                         }
                         args.push(commands.next().unwrap());
@@ -90,7 +102,7 @@ fn main() {
                         None => std::process::Stdio::inherit(),
                     };
 
-                    let stdout = if commands.peek().is_some() {
+                    let stdout = if commands.peek().is_some() && !symbols::io_seperator(commands.peek().unwrap()) {
                         std::process::Stdio::piped()
                     } else {
                         std::process::Stdio::inherit()
