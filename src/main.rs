@@ -7,6 +7,9 @@ mod redirect;
 #[path = "internal_functions/symbols.rs"]
 mod symbols;
 
+#[path = "internal_functions/parser.rs"]
+mod parser;
+
 const PROMPT: &str = "rush> ";
 const HISTORY_FILE: &str = ".rush_history";
 
@@ -34,21 +37,15 @@ fn main() {
                 std::process::exit(1);
             }
         };
-        let split_command = shell_words::split(&input);
-        let mut split_command = match split_command {
-            Ok(commands) => commands,
-            Err(e) => {
-                eprintln!("{}", e);
-                break;
-            }
-        };
 
+        let ast = parser::parse(&input);
+        let mut split_command = parser::expand(&ast);
         let mut commands = split_command.iter_mut().peekable();
 
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
-            match command.as_str() {
+            match *command {
                 "exit" => {
                     if let Err(e) = rl.save_history(HISTORY_FILE) {
                         eprintln!("Could not save history: {}", e);
