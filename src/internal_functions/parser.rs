@@ -18,12 +18,22 @@ pub enum Argument {
     Operator(String),
 }
 
-pub fn expand(arguments: &Vec<Argument>) -> Vec<&str> {
-    let mut expanded = Vec::new();
-    for a in arguments {
-        expanded.push(match a {
-            Argument::Quoted(a) | Argument::Unquoted(a) | Argument::Operator(a) => a.as_ref(),
-        });
+pub fn expand(arguments: &Vec<Argument>) -> Vec<String> {
+    let mut expanded = Vec::with_capacity(arguments.len());
+    for arg in arguments {
+        match arg {
+            Argument::Quoted(a) | Argument::Operator(a) => expanded.push(a.to_owned()),
+            Argument::Unquoted(a) => {
+                if let Ok(entries) = glob::glob(a) {
+                    let before_extend = expanded.len();
+                    expanded.extend(entries.flatten().map(|e| e.to_str().unwrap().to_owned()));
+                    let after_extend = expanded.len();
+                    if before_extend == after_extend {
+                        expanded.push(a.to_owned());
+                    }
+                }
+            }
+        }
     }
     expanded
 }

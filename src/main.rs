@@ -45,7 +45,7 @@ fn main() {
         let mut previous_command: Option<std::process::Child> = None;
 
         while let Some(command) = commands.next() {
-            match *command {
+            match command.as_str() {
                 "exit" => {
                     if let Err(e) = rl.save_history(HISTORY_FILE) {
                         eprintln!("Could not save history: {}", e);
