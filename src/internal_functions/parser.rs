@@ -62,8 +62,11 @@ pub fn parse(command: &str) -> Vec<Argument> {
             State::DoubleOperator => {
                 if chunk == String::from(c) {
                     chunk.push(c);
+                    chunks.push(Argument::Quoted(std::mem::take(&mut chunk)));
+                } else {
+                    chunks.push(Argument::Quoted(std::mem::take(&mut chunk)));
+                    chunk.push(c);
                 }
-                chunks.push(Argument::Quoted(std::mem::take(&mut chunk)));
                 state = State::Unquoted;
             },
 
