@@ -20,6 +20,8 @@ fn main() {
         eprintln!("Could not read history file: {}", HISTORY_FILE);
     }
 
+    let mut aliases = std::collections::HashMap::new();
+
     loop {
         let input = match rl.readline(PROMPT) {
             Ok(line) => {
@@ -61,6 +63,36 @@ fn main() {
                     }
                     previous_command = None;
                     break;
+                }
+
+                "alias" => {
+                    let aliased_command = match commands.next() {
+                        Some(aliased_command) => aliased_command,
+                        None => {
+                            println!("{:?}", aliases);
+                            break;
+                        }
+                    };
+
+                    match commands.next() {
+                        Some(eq) => {
+                            if eq != "=" {
+                                eprintln!("Missing assignment operator");
+                                break;
+                            }
+                        }
+                        None => {
+                            eprintln!("Missing assignment operator");
+                            break;
+                        }
+                    }
+
+                    let alias_into = match commands.next() {
+                        Some(alias_into) => alias_into,
+                        None => "",
+                    };
+
+                    aliases.insert(aliased_command.to_owned(), alias_into.to_owned());
                 }
 
                 ">" => {
